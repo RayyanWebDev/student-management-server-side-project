@@ -28,6 +28,7 @@ async function run() {
 
     const userCollection = client.db("adroitDB").collection("users");
     const teacherCollection = client.db("teacherDB").collection("teacherInfo");
+    const classCollection = client.db("classTeacherDB").collection("classInfo");
 
     // middleware
     const verifyToken = (req, res, next) => {
@@ -103,6 +104,25 @@ async function run() {
       res.send(result);
     });
     //
+    // classInfo api
+    app.post("/classInfo", async (req, res) => {
+      const item = req.body;
+      const result = await classCollection.insertOne(item);
+      res.send(result);
+    });
+    app.get("/classInfo", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const result = await classCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    app.get("/classesInfo", async (req, res) => {
+      const result = await classCollection.find().toArray();
+      res.send(result);
+    });
+
+    //
     app.post("/teacherInfo", async (req, res) => {
       const item = req.body;
       const result = await teacherCollection.insertOne(item);
@@ -118,6 +138,31 @@ async function run() {
       const query = { _id: new ObjectId(id) };
       const result = await teacherCollection.deleteOne(query);
       res.send(result);
+    });
+
+    // Class delete
+    app.delete("/classesInfo/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await classCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    // teacher varify
+    // gdaggadgf
+    // teachers@gmail.com
+    app.get("/teacherInfo/teacher/:email", verifyToken, async (req, res) => {
+      const email = req.params.email;
+      if (email !== req.decoded.email) {
+        return res.status(403).send({ message: "unauthorized chamber" });
+      }
+      const query = { email: email };
+      const user = await teacherCollection.findOne(query);
+      let teacher = false;
+      if (user) {
+        teacher = user?.role === "teacher";
+      }
+      res.send({ teacher });
     });
 
     // make admin
@@ -147,6 +192,17 @@ async function run() {
         },
       };
       const result = await teacherCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    });
+    app.patch("/classesInfo/class/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          status: "approved",
+        },
+      };
+      const result = await classCollection.updateOne(filter, updatedDoc);
       res.send(result);
     });
 
