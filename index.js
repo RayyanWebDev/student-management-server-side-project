@@ -24,11 +24,23 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
-
+    // await client.connect();
+    const paidCollection = client.db("paidDB").collection("paid");
+    const assignmentCollection = client
+      .db("assignmentDB")
+      .collection("assignment");
+    const homeClassCollection = client.db("hClassDB").collection("hClassInfo");
+    const assignmentPostCollection = client
+      .db("assignmentPostDB")
+      .collection("assignmentPost");
+    const paymentCollection = client.db("paymentDB").collection("classPayment");
+    const feedCollection = client.db("feedDB").collection("feedPayment");
     const userCollection = client.db("adroitDB").collection("users");
     const teacherCollection = client.db("teacherDB").collection("teacherInfo");
     const classCollection = client.db("classTeacherDB").collection("classInfo");
+    const classesCollection = client
+      .db("enrolledClassDB")
+      .collection("classes");
 
     // middleware
     const verifyToken = (req, res, next) => {
@@ -104,10 +116,86 @@ async function run() {
       res.send(result);
     });
     //
+    // enrolled api
+    app.get("/paid", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const result = await paidCollection.find(query).toArray();
+      res.send(result);
+    });
+    // payment api
+
+    app.post("/paid", async (req, res) => {
+      const item = req.body;
+      const result = await paidCollection.insertOne(item);
+      res.send(result);
+    });
+    app.post("/classPayment", async (req, res) => {
+      const item = req.body;
+      const result = await paymentCollection.insertOne(item);
+      res.send(result);
+    });
+
+    app.get("/classPayment", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const result = await paymentCollection.find(query).toArray();
+      res.send(result);
+    });
+    // enroll class api
+
+    app.post("/classes", async (req, res) => {
+      const item = req.body;
+      const result = await classesCollection.insertOne(item);
+      res.send(result);
+    });
+    app.get("/feedPayment", async (req, res) => {
+      const result = await feedCollection.find().toArray();
+      res.send(result);
+    });
+    app.post("/feedPayment", async (req, res) => {
+      const item = req.body;
+      const result = await feedCollection.insertOne(item);
+      res.send(result);
+    });
+    app.get("/classes", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const result = await classesCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // home Class api
+
+    app.post("/hClassInfo", async (req, res) => {
+      const item = req.body;
+      const result = await homeClassCollection.insertOne(item);
+      res.send(result);
+    });
+
+    app.get("/hClassInfo", async (req, res) => {
+      const result = await homeClassCollection.find().toArray();
+      res.send(result);
+    });
+
     // classInfo api
     app.post("/classInfo", async (req, res) => {
       const item = req.body;
       const result = await classCollection.insertOne(item);
+      res.send(result);
+    });
+    app.post("/assignment", async (req, res) => {
+      const item = req.body;
+      const result = await assignmentCollection.insertOne(item);
+      res.send(result);
+    });
+    app.post("/assignmentPost", async (req, res) => {
+      const item = req.body;
+      const result = await assignmentPostCollection.insertOne(item);
+      res.send(result);
+    });
+    app.get("/assignment", async (req, res) => {
+      const result = await assignmentCollection.find().toArray();
       res.send(result);
     });
     app.get("/classInfo", async (req, res) => {
@@ -119,6 +207,28 @@ async function run() {
 
     app.get("/classesInfo", async (req, res) => {
       const result = await classCollection.find().toArray();
+      res.send(result);
+    });
+    app.get("/classesInfo:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await classCollection.findOne(query);
+      res.send(result);
+    });
+    app.patch("/classesInfo:id", async (req, res) => {
+      const item = req.body;
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          image: item.image,
+          description: item.description,
+          price: item.price,
+
+          title: item.title,
+        },
+      };
+      const result = await classCollection.updateOne(filter, updatedDoc);
       res.send(result);
     });
 
@@ -148,7 +258,16 @@ async function run() {
       res.send(result);
     });
 
+    // app.delete("/classInfo/:id", async (req, res) => {
+    //   const id = req.params.id;
+    //   const query = { _id: new ObjectId(id) };
+    //   const result = await classCollection.deleteOne(query);
+    //   res.send(result);
+    // });
+
     // teacher varify
+    // fsdfsdfd
+    // new@gmail.com
     // gdaggadgf
     // teachers@gmail.com
     app.get("/teacherInfo/teacher/:email", verifyToken, async (req, res) => {
@@ -194,6 +313,18 @@ async function run() {
       const result = await teacherCollection.updateOne(filter, updatedDoc);
       res.send(result);
     });
+    app.patch("/classPayment/payment/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          role: "paid",
+        },
+      };
+      const result = await paymentCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    });
+
     app.patch("/classesInfo/class/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
@@ -207,10 +338,10 @@ async function run() {
     });
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
+    // await client.db("admin").command({ ping: 1 });
+    // console.log(
+    //   "Pinged your deployment. You successfully connected to MongoDB!"
+    // );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
